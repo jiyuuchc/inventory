@@ -1,0 +1,304 @@
+body  {
+  font: 66.7% "Trebuchet MS", sans-serif;
+  margin: 25px;
+  min-height: 600px;
+}
+
+/* css popup with arrow */
+.arrow-box{
+  background: white;
+
+  -webkit-box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.3); 
+
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px; 
+} 
+.arrow-box-inner {
+  background: white;
+  margin-top: -10px;
+  padding:10px;
+
+  -webkit-border-radius: 2px;
+  -moz-border-radius: 2px;
+  border-radius: 2px; 
+
+  /* transform z-index hack */	
+  -moz-transform: rotate(0deg);
+  -webkit-transform: rotate(0deg);
+  -o-transform: rotate(0deg);
+  -ms-transform: rotate(0deg);
+  transform: rotate(0deg);
+}
+
+.arrow-box-before {
+  position: relative;
+
+  margin-left: 25px;
+  top: -5px;
+
+  background: white;
+  display: block;
+  width: 10px;
+  height: 10px;
+
+  -webkit-box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.3);
+  box-shadow: 0px 1px 8px 0px rgba(0, 0, 0, 0.3); 
+
+  -moz-transform: rotate(45deg);
+  -webkit-transform: rotate(45deg);
+  -o-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  transform: rotate(45deg);
+}
+
+/* css buttons*/
+.bttn {
+  text-decoration:none;
+  cursor:pointer;
+  padding:0 16px;
+  font-weight:bold;
+  height:30px;
+  line-height:30px;
+  display:inline-block;
+  outline:0;
+  color:#444;
+  background-color:#f5f5f5;
+  background-image:-webkit-linear-gradient(top,#f5f5f5,#f1f1f1);
+  background-image:-moz-linear-gradient(top,#f5f5f5,#f1f1f1);
+  background-image:linear-gradient(top,#f5f5f5,#f1f1f1);
+  border:1px solid #d9d9d9;
+  border:1px solid rgba(0,0,0,0.1);
+  -webkit-border-radius:2px;
+  -moz-border-radius:2px;
+  border-radius:2px;
+}
+.bttn:hover {
+  border:1px solid #c6c6c6;
+  border:1px solid rgba(0,0,0,0.2);
+  -webkit-box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  -moz-box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  position:relative;
+  z-index:1;
+}
+.bttn:active {
+  -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);
+  -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.1);
+}
+.red {
+  color:#fff;
+  background-color:#d14836;
+  border:1px solid transparent;
+  background-image:-webkit-linear-gradient(top,#dd4b39,#d14836);
+  background-image:-moz-linear-gradient(top,#dd4b39,#d14836);
+  background-image:linear-gradient(top,#dd4b39,#d14836);
+}
+.red:hover {
+  background-color:#c53727;
+  border:1px solid #b0281a;
+  background-image:-webkit-linear-gradient(top,#dd4b39,#c53727);
+  background-image:-moz-linear-gradient(top,#dd4b39,#c53727);
+  background-image:linear-gradient(top,#dd4b39,#c53727);
+  -webkit-box-shadow:0 1px 2px rgba(0,0,0,0.2);
+  -moz-box-shadow:0 1px 2px rgba(0,0,0,0.2);
+  box-shadow:0 1px 2px rgba(0,0,0,0.2);
+}
+.red:active {
+  -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2);
+  -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,0.2);        
+}
+
+/* Storage Box Table */
+#box-content-table {
+  table-layout:fixed;
+  border-collapse:collapse;
+  width: 100%;
+}
+#table-label {
+  padding: 1px
+}
+#box-content-table  td{
+  height: 70px;
+  padding: 4px;
+  margin: 0px;
+  font: 140% "Trebuchet MS", sans-serif 
+}
+#box-content-table th {
+  background: #555555;
+  color:white;
+  text-align: center;
+  border: 0;
+  margin-bottom: 2px
+}
+#box-content-table  .row-number{
+  width:20px;
+  background: #555555;
+  color:white;
+  text-align:center;
+  border: 0;
+  margin-right: 2px
+}
+#box-content-table  .aliquot-cell{
+  white-space: nowrap;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  cursor: default;
+  line-height: 1.1
+}
+#box-content-table .aliquot-cell:hover {
+  background-color: #f0f0f0
+}
+.item-id {
+  padding: 2px;
+  margin-right: 3px;
+  color: white;
+  background-color: #0cc
+}
+.item-header {
+  font-weight: bold;
+  font-size: 110%;
+  margin-top: 2px;
+  margin-bottom: 8px
+}
+.item-header:hover {
+  text-decoration: underline
+}
+
+/* add-aliquot popup */
+#new-aliquot-box {
+  width: 220px;
+  height: 60px;
+  position: absolute
+}
+
+/* delete-aliquot button */
+#delete-button {
+  position: absolute
+}
+
+
+/* plasmid info dialog */
+#plasmid-form {
+  width: 60em; 
+  padding: 1em;
+  display:none;
+  background: #FFF;
+  border-radius: 5px; -moz-border-radius: 5px; -webkit-border-radius: 5px;
+  box-shadow: 0px 0px 4px rgba(0,0,0,0.7); -webkit-box-shadow: 0 0 4px rgba(0,0,0,0.7); -moz-box-shadow: 0 0px 4px rgba(0,0,0,0.7);
+}
+#plasmid-form .form-header {
+  margin-bottom: 3px;
+  background: #ccc;
+  padding: 3px;
+}
+.txt-field {
+  padding-bottom: 3px
+}
+.txt-field input {
+  width: 100%
+}
+#plasmid-form #plasmid-name { 
+  color: #444;
+  font-size: 150%;
+  font-weight: bold;
+  text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.5);
+  margin: 0 auto
+}
+#plasmid-form #copy-note { 
+  color: #666;
+  font-size: 90%;
+  margin: 0 auto
+}
+#note-block { 
+ float: right;
+ width: 60%;
+ padding:10px
+}
+#main-block {
+ float:left;
+ width: 35%;
+ padding: 10px 0
+}
+#note{
+ width: 100%;
+ height: 7.8em;
+ font-size: 125%
+}
+#bottom-block, #tags-block {
+ padding: 10px 0;
+ border-bottom: 1px solid #EEE;
+}
+#seq {
+ width: 100%;
+ height: 12em;
+ font-size: 100%
+}
+#resistance-block {
+  clear:both;
+  padding: 10px 0;
+  border-top: 1px solid #EEE;
+  border-bottom: 1px solid #EEE;
+}
+#resistance {
+  display:inline;
+}
+#resistance-block label {
+  margin-left: 10px;
+  margin-right: 3px
+}
+#button-block {
+  padding 10px 3px;
+  text-align: right
+}
+
+/*modal dialog overlay*/
+#doc-overlay {
+position: absolute;
+z-index:10000;
+top: 0px;
+left: 0px;
+height:100%;
+width:100%;
+background: #000;
+display: none;
+}
+
+/* query results*/
+#query-result-table {
+table-layout:fixed;
+width: 100%
+}
+#query-result-table td{
+border: 1px solid #ccc; vertical-align:top
+}
+#query-result-table .main{
+font-family: sans-serif; padding: 4px; overflow: hidden; height:100%
+}
+#query-result-table .main:hover{
+background-color: #eee
+}
+#query-result-table .note {
+float:right;width:60%;height:80px; overflow: hidden; 
+}
+#query-result-table .info{
+white-space: nowrap; overflow: hidden; float: left; width:38%; font-size: 120%
+}
+#query-result-table .name{
+font-weight: bold;
+font-size: 125%
+}
+#query-result-table .aliquots-block{
+clear:both; width: 100%
+}
+#query-result-table .aliquot {
+display: inline-block; margin-right: 1em; font-family: monospace; font-size: 170%
+}
+#query-result-table .aliquot:hover {
+text-decoration: underline
+}

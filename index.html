@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html lang="en">
+<head>
+<title>Inventory Query</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+
+  <link href="css/inventory.css" rel="stylesheet">
+</head>
+
+<body>
+<div id = "box-content">
+  <p id='query-line'><label for="box-name-input">Query Input:</label><input type="text" name="box-name" id="box-name-input" style="margin-left: 5px"></p> 
+  <table id = "query-result-table" border="0" style="font-size: 80%; display: none" ></table> 
+  <table id = "box-content-table" border="0" style="font-size: 80%; display: none" ></table>  
+</div>
+
+<div id="new-aliquot-box" class="arrow-box" style="display:none">
+  <div class="arrow-box-before"></div>
+  <div id="new-aliquot-box-inner" class="arrow-box-inner">
+    <label for="name">Add aliquot: </label>
+    <input type="text" name="name" id="aliquot-name" style="width: 100%"> 
+  </div>
+</div>
+
+<div id="delete-button", class="bttn red", style="display:none">Delete</div>
+
+<div id="doc-overlay"> </div>
+
+<div id="plasmid-form" style="display: none">
+  <div class="form-header"><p id="plasmid-name">pJY116</p><p id="copy-note">Copy from <a href='#'>others</a></p></div>
+  <div id="top-block">
+    <div id="note-block">
+      <label for="note">Description:</label><textarea name="note" id="note"></textArea>
+    </div>
+    <div id="main-block">
+      <div class="txt-field"><label for="alt-name">Alternative Name:</label><input type="text" name="alt-name" id="alt-name"></div>
+      <div class="txt-field "><label for="vecotr ">Vector/Parent:</label><input type="text " name="vector " id="vector"></div>
+      <div class="txt-field "><label for="insert ">Insert/Gene of Interes:</label><input type="text" name="insert" id="insert"></div>
+    </div>
+  </div>
+  <div id="resistance-block">
+    <div id="resistance">
+      <input type="checkbox" value="Amp">Amp
+      <input type="checkbox" value="Cam">Cam
+      <input type="checkbox" value="Kan">Kan
+      <input type="checkbox" value="Spc">Spc
+      <input type="checkbox" value="Tet">Tet
+      <input type="checkbox" value="MLS">MLS
+    </div>
+    <label for="resistance-other">Other:</label><input type="text" name="resistance-other" id="resistance-other">
+  </div>
+  <div id="tags-block">
+    <div class="txt-field"><label for="tag">Tags: (e.g. empty vector, entry clone etc.)</label><input type="text" name="tag" id="tag"></div>
+  </div>
+  <div id="bottom-block">
+    <label for="seq">Sequence:</label>
+    <textarea name="seq " id="seq"></textarea>
+  </div>
+  <div id="button-block">
+    <span class="bttn" id="update-bttn">Update</span><span class="bttn" id="cancel-bttn">Cancel</span>
+  </div>
+</div>
+
+<script src="js/jquery-1.10.2.js"></script>
+<script src="js/jquery.history.js"></script>
+<script src="js/inventory.js"></script>
+<script src="https://apis.google.com/js/client.js?onload=initAuth"></script >
+</script>
+</body>
