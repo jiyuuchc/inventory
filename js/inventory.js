@@ -11,6 +11,7 @@ var APIKey = 'AIzaSyAMabFy8YY5uF20WCXYdEIcQ0hPhXb6hm0';
 var APIScopes = 'https://www.googleapis.com/auth/spreadsheets ' +
                'https://www.googleapis.com/auth/userinfo.profile';
 var dataSheetID = "1K0Yurjb9R2Hpq0QG01-1Y-N-Y3myK8lfJ7aVZD9ZZFg";
+var sheetIds = [345465162, 1288027469, 314131839]; // plasmids, aliquots, boxsizes
 
 $(function () {
   var History = window.History;
@@ -102,8 +103,8 @@ $(function () {
         }
       });
     }
-    _updatePlasmid(newdata);
     closeForm();
+    updatePlasmid(newdata);
   });
 
   $('#plasmid-form').keyup(function (e) {
@@ -270,21 +271,26 @@ function fillQueryCell($cell, data) {
   for (var j in a) {
     aliquotsStr.push("<span class='aliquot'>" + a[j] + "</span>");
   }
+  var noteStr = "" + data[7];
+  var resStr = "" + data[4];
+  var altStr = "" + data[1];
+  var vecStr = "" + data[2];
+  var insStr = "" + data[3];
   var $div = $('<div>');
-  $cell.html("<div class='main'> <div class='note'>" + $div.text(data[7]).html() + "</div>" +
+  $cell.html("<div class='main'> <div class='note'>" + $div.text(noteStr).html() + "</div>" +
     "<div class = 'info'> <span class='name'>" + $div.text(data[0]).html() + "</span> <br>" +
-    "<tt>R:</tt> " + $div.text(data[4]).html() + "<br>" +
-    "<tt>A:</tt> " + $div.text(data[1]).html() + "<br>" +
-    "<tt>V:</tt> " + $div.text(data[2]).html() + "<br>" +
-    "<tt>I:</tt> " + $div.text(data[3]).html() + "<br> </div>" +
+    "<tt>R:</tt> " + $div.text(resStr).html() + "<br>" +
+    "<tt>A:</tt> " + $div.text(altStr).html() + "<br>" +
+    "<tt>V:</tt> " + $div.text(vecStr).html() + "<br>" +
+    "<tt>I:</tt> " + $div.text(insStr).html() + "<br> </div>" +
     "<div class='aliquots-block'>" + aliquotsStr.join('') + "</div></div>");
 }
 
 function showQueryResults(data) {
-  gData = {};
-  for (var i in data) {
-    gData[data[i][0]] = data[i];
-  }
+  // gData = {};
+  // for (var i in data) {
+  //   gData[data[i][0]] = data[i];
+  // }
   var $table = $('#query-result-table');
 
   $('#box-name-input').prop('disabled', false);
@@ -292,7 +298,7 @@ function showQueryResults(data) {
 
   $table.show();
 
-  if (!data) {
+  if (!data || data.length === 0) {
     $table.html('No results.');
     return;
   }
@@ -334,38 +340,10 @@ function removeAliquot(retData, $cell) {
   }
 }
 
-function updatePlasmid(retData, userData) {
-  var plasmidName = userData[0];
-  if (retData) {
-    var oldData = gData[plasmidName];
-    if (oldData && oldData[9]) { // update aliquot info if available
-      userData = jQuery.extend({}, userData);
-      userData[9] = oldData[9];
-    }
-    gData[plasmidName] = userData;
-  }
-
-  if ($('#query-result-table').is(':visible')) {
-    $('#query-result-table').find('td').each(function () {
-      if ($(this).find('.name').text() == plasmidName) {
-        fillQueryCell($(this), userData);
-        $(this).css('color', 'black').data('locked', false);
-      }
-    });
-  } else {
-    $('#box-content-table').find('.aliquot-cell').each(function () {
-      if ($(this).find('.item-header').text() == plasmidName) {
-        fillInfo($(this), plasmidName);
-        $(this).data('locked', false);
-      }
-    });
-  }
-}
-
 function readForm() {
   var $form = $('#plasmid-form');
   var plasmidName = $form.find("#plasmid-name").text();
-  var oldData = gData[plasmidName];
+  var oldData = gPlasmids.find(el => el[0]===plasmidName);
   var data = [plasmidName];
   data[6] = oldData[6];
   data[1] = $form.find('#alt-name').val();
@@ -399,7 +377,11 @@ function fillForm(plasmidName) {
   $form.find('#tag').val(data[5]);
 
   $form.find("[type=checkbox]").prop("checked", false);
-  var rsts = data[4].split(',');
+  if (data[4] !== undefined) {
+    var rsts = data[4].split(',');
+  } else {
+    var rsts = [];
+  }
   var patterns = [/^amp/i, /^(cat|cam|chlo)/i, /^kan/i, /^(spc|spec)/i, /^tet/i, /^mls/i];
   var str = [];
   for (var i in rsts) {
@@ -617,4 +599,101 @@ function getPlasmids(plasmidName) {
 
   //console.log(matched);
   showQueryResults(matched);
+}
+
+function _removeAliquot(boxName, row, col, contentName, $cell) {
+  row = Number(row);
+  col = Number(col);
+  boxName = boxName.toUpperCase();
+  idx = gAliquots.findIndex(el => el[0] === boxName && el[1] === row && el[2] === col);
+  console.log(idx)
+
+  if (idx !== -1) {
+    var request = [];
+    request.push({
+      deleteDimension: {
+        range: {
+          sheetId: sheetIds[1],
+          dimension: "ROWS",
+          startIndex: idx + 1,
+          endIndex: idx + 2,
+        }
+      }
+    });
+    gapi.client.sheets.spreadsheets.batchUpdate({
+      spreadsheetId: dataSheetIds,
+      resource: request,
+    }).then( (resp) => {
+      removeAliquot(resp, $cell)
+    });
+  } else {
+    alert('Aliquot does not exisit in the database');
+  }
+}
+
+function _addAliquot(boxName, row, col, contentName, $cell) {
+  row = Number(row);
+  col = Number(col);
+  boxName = boxName.toUpperCase();
+
+  //read current aliquot table in case sth has changed
+  // gapi.client.sheets.spreadsheets.values.get({
+  //   spreadsheetId: dataSheetID,
+  //   range: 'aliquots!2:99999',
+  // }).then( (resp) => {
+  //   var curAliqots = resp.result.values;
+  //
+  // });
+  var params = {
+    spreadsheetId: dataSheetID,
+    range: 'aliquots!A:G',
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+  };
+  var data = {
+    values: [
+      [boxName, row, col, contentName, '', getCurrentDate()],
+    ]
+  };
+  var request = gapi.client.sheets.spreadsheets.value.append(params, data);
+  request.then( (resp) => {
+    readDataSheets();
+  }, (reason) => {
+    onFailure(reason.result.error);
+  });
+}
+
+function updatePlasmid(plasmidData) {
+  if (plasmidData[6] === undefined || plasmidData[6].length == 0) {
+    plasmidData[6] = userName;
+  }
+  gapi.client.sheets.spreadsheets.values.get({
+    spreadsheetId: dataSheetID,
+    range: 'plasmid!2:99999',
+  }).then( (resp) => {
+    var plasmids = resp.result.values;
+    var idx = plasmids.findIndex( el => el[0] === plasmidData[0]);
+    if (idx === -1) {
+      idx = plasmids.length;
+    }
+    idx = idx + 2;
+    var range = 'plasmid!' + idx + ":" + idx;
+    console.log(range);
+    var params = {
+      spreadsheetId: dataSheetID,
+      range: range,
+      valueInputOption: 'RAW',
+    };
+    var data = {
+      values: [plasmidData],
+    };
+    var request = gapi.client.sheets.spreadsheets.values.update(params, data);
+    request.then((resp) => {
+      readDataSheets();
+    }, (reason) => {
+      onFailure(reason.result.error);
+    });
+  }, (reason) => {
+    onFailure(reason.result.error);
+  });
 }
