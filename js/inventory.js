@@ -6,7 +6,7 @@ var gAliquots;
 var gBoxSizes;
 var gPlasmids;
 
-var clientID = '155634899666-v8abldhs8o6nb1u7310ocuqubustjoiq.apps.googleusercontent.com';
+var clientID = '155634899666-fhpcsit4q1ns3fsq8n653dqtef9cnui1.apps.googleusercontent.com';
 var APIKey = 'AIzaSyAMabFy8YY5uF20WCXYdEIcQ0hPhXb6hm0';
 var APIScopes = 'https://www.googleapis.com/auth/spreadsheets ' +
                'https://www.googleapis.com/auth/userinfo.profile';
