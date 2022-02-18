@@ -2,17 +2,30 @@ var gData;
 var accessToken;
 var userName;
 var gQuery;
+var gAliquots;
+var gBoxSizes;
+var gPlasmids;
 
-var clientID = '155634899666-1q3npshbuf5082rhebocs2h6sn0r0ef4.apps.googleusercontent.com';
-var APIKey = 'AIzaSyDfDpup8u_hcdM7horU_EO9WVHPz9cElQs';
-var APIScopes = 'https://www.googleapis.com/auth/fusiontables' +
-               ' https://www.googleapis.com/auth/userinfo.profile';
-
-var locationTableID = "1x05TS4UyJw7PZtR6sREYO_jZ41Kn1jn90ZkU6Rg";
-var dataTableID = "1nb-ffOC31pChmFB6-z3NuCBi1xTxnTQESkH7rp0";
-var boxTableID =  "1Gb-CpsxpQm26yqGNHfPhOeZumVPtjIyH4qs5i3k";
+var clientID = '155634899666-v8abldhs8o6nb1u7310ocuqubustjoiq.apps.googleusercontent.com';
+var APIKey = 'AIzaSyAMabFy8YY5uF20WCXYdEIcQ0hPhXb6hm0';
+var APIScopes = 'https://www.googleapis.com/auth/spreadsheets ' +
+               'https://www.googleapis.com/auth/userinfo.profile';
+var dataSheetID = "1K0Yurjb9R2Hpq0QG01-1Y-N-Y3myK8lfJ7aVZD9ZZFg";
 
 $(function () {
+  var History = window.History;
+  History.Adapter.bind(window,'statechange',function(){
+    var State = History.getState();
+    History.log(State.data, State.title, State.url);
+    gQuery = State.data.query;
+    if (gQuery) {
+      $('#box-name-input').val(gQuery);
+    } else {
+      $('#box-name-input').val("");
+    }
+    doQuery(gQuery);
+  });
+
   $('#new-aliquot-box').click(function (e) {
     return false;
   });
@@ -26,9 +39,7 @@ $(function () {
         $(this).select().focus();
         return false;
       }
-
       History.pushState({query:str}, str, "?query=" + str);
-
       return false;
     }
   });
@@ -171,75 +182,8 @@ $(function () {
       fillForm(data[0]);
       return;
     }
-    //FIXME query server
-  });
-
-  var History = window.History;
-  if ( !History.enabled ) {
-    return false;
-  }
-
-  History.Adapter.bind(window,'statechange',function(){
-    var State = History.getState();
-    History.log(State.data, State.title, State.url);
-    gQuery = State.data.query;
-    if (gQuery) {
-      $('#box-name-input').val(gQuery);
-    } else {
-      $('#box-name-input').val("");
-    }
-    var options = {client_id : clientID, scope : APIScopes, immediate : true};
-    gapi.auth.authorize(options, handleAuthResult);
   });
 });
-
-function handleAuthResult(authResult) {
-  if (authResult && !authResult.error) {
-    prepareQuery();
-  } else {
-    gapi.auth.authorize(
-	{
-      client_id : clientID,
-      scope : APIScopes,
-      immediate : false
-    }, 
-	function(result) {
-      if (result && !result.error) {
-        prepareQuery();
-      }
-    });
-  }
-}
-
-function prepareQuery() {
-  accessToken = gapi.auth.getToken().access_token;
-  var req=gapi.client.request({path: 'oauth2/v2/userinfo'});
-  req.execute( function(resp){
-    // console.log(resp);
-    userName = resp.Name;
-  });
-//  gapi.client.load('fusiontables', 'v2', function () {
-    doQuery();
-//  });
-}
-
-function doQuery() {
-  $('#box-content-table').empty().hide();
-  $('#query-result-table').empty().hide();
-
-  if (gQuery) {
-    $('#box-name-input').prop('disabled', true);
-    $('body').css('cursor', 'wait');
-
-    if (gQuery.match(/[\dcC]-\w?\d-\d/)) {
-      $('#box-content').data('name', gQuery);
-      _getContents(gQuery);
-    } else {
-      $('#query-result-table').data('query', gQuery);
-      _findPlasmids(gQuery);
-    }
-  }
-}
 
 function displayNewAliquotBox(event) {
   var x = event.pageX - 30;
@@ -270,7 +214,8 @@ function onFailure(err) {
 }
 
 function fillInfo($cell, name) {
-  var plasmid = gData[name];
+  //var plasmid = gData[name];
+  var plasmid = gPlasmids.find(el => el[0] === name);
 
   if (!plasmid) {
     plasmid = [name, '', '', ''];
@@ -287,7 +232,7 @@ function showContents(data) {
 
   var locations = data.locations;
   var size = data.size;
-  gData = jQuery.extend({}, data.data);
+  // gData = jQuery.extend({}, data.data);
 
   for (var i = 0; i < size[0]; ++i) {
     $table.append('<tr>');
@@ -308,9 +253,8 @@ function showContents(data) {
   try {
     for (i in locations) {
       var line = locations[i];
-      // console.log(line);
-      var $cell = $table.find('tr').eq(line[0]).find('td').eq(line[1]);
-      fillInfo($cell, line[2]);
+      var $cell = $table.find('tr').eq(line[1]).find('td').eq(line[2]);
+      fillInfo($cell, line[3]);
     }
     $table.show();
   } catch (err) {
@@ -444,8 +388,8 @@ function readForm() {
 }
 
 function fillForm(plasmidName) {
-  var data = gData[plasmidName];
-
+  //var data = gData[plasmidName];
+  var data = gPlasmids.find(el => el[0] === plasmidName);
   var $form = $('#plasmid-form');
   $form.find('#alt-name').val(data[1]);
   $form.find('#vector').val(data[2]);
@@ -543,70 +487,7 @@ function closeForm() {
   $('#plasmid-form').hide();
 }
 
-function initAuth() {
-  gapi.client.setApiKey(APIKey);
-  var pars = location.search.replace('?', '').split('&').map(function(val){
-    return val.split('=');
-  });
-  if (pars[0][0] == 'query') {
-    var q = pars[0][1].trim();
-    if ( q && q.length >=3 ) {
-      History.replaceState({query: q}, q, '?query=' + q);
-      gQuery = q;
-      $('#box-name-input').val(gQuery);
-      var options = {client_id : clientID, scope : APIScopes, immediate : true};
-      gapi.auth.authorize(options, handleAuthResult);
-    }
-  }
-}
-
-function _sql_escape_string(str) {
-  return str.replace(/[\0\x08\x09\x1a\n\r"'\\]/g, function (char) {
-    switch (char) {
-    case "\0":
-      return "\\0";
-    case "\x08":
-      return "\\b";
-    case "\x09":
-      return "\\t";
-    case "\x1a":
-      return "\\z";
-    case "\n":
-      return "\\n";
-    case "\r":
-      return "\\r";
-    case "\"":
-    case "'":
-    case "\\":
-      return "\\" + char; // prepends a backslash to backslash, percent,
-      // and double/single quotes
-    }
-  });
-}
-
-function _sql(sqlStr, onSuccess) {
-  // console.log(sqlStr);
-  // avoid use gapi impl because send data using URI which is too long
-  var oauthToken = gapi.auth.getToken();
-  $.ajax({
-    method: "POST",
-    url: 'https://www.googleapis.com/fusiontables/v2/query',
-	data: {sql: sqlStr},
-	headers: {Authorization: 'Bearer ' + oauthToken.access_token},
-	dataType: 'json'
-  }).done( function(jsonResp) {
-	if (jsonResp.kind == 'fusiontables#sqlresponse') {
-	  onSuccess(jsonResp);
-	} else {
-	  console.log(xhr.responseText);
-	  if (jsonResp.message) {
-		alert(jsonResp.message);
-      }
-	}
-  });
-}
-
-function _getCurrentDate() {
+function getCurrentDate() {
   var today = new Date();
   var dd = today.getDate();
   var mm = today.getMonth() + 1; //January is 0!
@@ -621,201 +502,119 @@ function _getCurrentDate() {
   return today;
 }
 
-function _mergeResults(prevResults, newResults) {
-  if (! newResults ) {
-    return prevResults;
-  }
-  if ( !prevResults) {
-    return newResults;
-  }
-  var len = prevResults.length;
-  for (var i in newResults) {
-    var name = newResults[i][0];
-    var duplicate = false;
-    for (var j = 0; j < len; ++j) {
-      if (prevResults[j][0] == name) {
-        duplicate = true;
-        break;
-      }
-    }
-    if (!duplicate) {
-      prevResults[prevResults.length] = newResults[i];
-    }
-  }
-  return prevResults;
-}
-
-function _updatePlasmid(plasmidData) {
-  var sql = "SELECT ROWID FROM " + dataTableID + " WHERE Name='" + plasmidData[0] + "'";
-  _sql(sql, function(r1) {
-    if (r1.rows) {
-      var rowID = r1.rows[0][0];
-      var sourceStr = '';
-      if (plasmidData[6].length == 0) {
-        sourceStr = " Source = '" + userName + "',";
-      }
-      sql = "UPDATE " + dataTableID + " SET "
-         + " AltName='" + _sql_escape_string(plasmidData[1]) + "',"
-         + " Vector='" + _sql_escape_string(plasmidData[2]) + "',"
-         + " Gene='" + _sql_escape_string(plasmidData[3]) + "',"
-         + " Resistance='" + _sql_escape_string(plasmidData[4]) + "',"
-         + " Type='" + _sql_escape_string(plasmidData[5]) + "',"
-         + sourceStr
-         + " Notes='" + _sql_escape_string(plasmidData[7]) + "',"
-         + " Sequence='" + _sql_escape_string(plasmidData[8]) + "' WHERE ROWID='" + rowID + "'";
-      _sql(sql, function(r2) {
-        updatePlasmid(r2.rows, plasmidData);
-      });
-    } else {
-      alert('Unable to find the plasmid:' + plasmidData[0] + ' in the database' );
-    }
-  });
-}
-
-function _removeAliquot(boxName, row, col, contentName, $cell) {
-  row = Number(row);
-  col = Number(col);
-  boxName = boxName.toUpperCase();
-  var sql = "SELECT ROWID FROM " + locationTableID + " WHERE BoxName='" + boxName
-     + "' AND Row=" + row + " AND Col=" + col + " AND ContentName='" + contentName.trim() + "'";
-  _sql(sql, function(r1) {
-    if (r1.rows) {
-      sql = "DELETE FROM " + locationTableID + " WHERE ROWID='" + r1.rows[0][0] + "'";
-      _sql(sql, function(r2) {
-        removeAliquot(r2.rows, $cell)
-        //return r2.rows;
-      });
-    } else {
-      alert('Aliquot does not exisit in the database');
-    }
-  });
-}
-
-function _addNewPlasmid(plasmidName, $cell){
-  sql = "SELECT * FROM " + dataTableID + " WHERE Name='" + plasmidName + "'";
-  _sql(sql, function (r1) {
-    if (r1.rows) { //already exist
-      addAliquot(r1.rows[0], $cell);
-    } else {
-      console.log("New plasmid- attempt to create new record");
-      sql = "INSERT INTO " + dataTableID + " (Name) VALUES ('" + plasmidName + "')";
-      _sql(sql, function (r2) {
-        if (!r2.rows) {
-          alert("Failed to create new plasmid record");
-        } else {
-          addAliquot([plasmidName, '', '', '', '', '', '', '', ''], $cell); //new
-        }
-      });
-    }
-  });
-}
-
-function _addAliquot(boxName, row, col, contentName, $cell) {
-  row = Number(row);
-  col = Number(col);
-  boxName = boxName.toUpperCase();
-  var sql = "SELECT ROWID FROM " + locationTableID + " WHERE BoxName='" + boxName
-     + "' AND Row=" + row + " AND Col=" + col;
-  _sql(sql, function(r1) {
-    if (! r1.rows) { // verify empty
-      sql = "INSERT INTO " + locationTableID + " (BoxName, Row, Col, ContentName, StoredDate) VALUES ('"
-          + boxName + "', " + row + "," + col + ",'" + contentName + "','" + _getCurrentDate() + "')";
-      _sql(sql, function (r2) {
-        if (!r2.rows) { //insert fail
-          alert('Failed to add adliquot to database');
-        } else {
-          _addNewPlasmid(contentName, $cell);
-        }
-      });
-    } else { // not empty
-      alert('The location ' + boxName + ':' + row + '-' + col + ' does not seem to be empty');
-    }
-  });
-}
-
-function _findAliquots(data)
-{
-  var names = [];
-  var ncol = data[0].length;
-  for (var i in data) {
-    names.push("'" + data[i][0] + "'");
-    data[i][ncol] = [];
-  }
-  var sql = "SELECT * FROM " + locationTableID + " WHERE ContentName IN (" + names.join(',') + ")";
-  _sql(sql, function(resp) {
-    for (var i in resp.rows) {
-      var row = resp.rows[i];
-      var aliquotName = row[0] + ":" + row[1] + String.fromCharCode(64 + Number(row[2]));
-      for (var j in data) {
-        if (data[j][0] == row[3]) {
-          data[j][ncol].push(aliquotName);
-          break;
-        }
-      }
-    }
-    //console.log(data);
-    showQueryResults(data);
-  });
-}
-
-function _findPlasmids(queryStr) {
-  var httpBatch = gapi.client.newBatch();
-  queryStr = "'" + _sql_escape_string(queryStr) + "'";
-  var sql = "SELECT * FROM " + dataTableID + " WHERE Name CONTAINS IGNORING CASE " + queryStr + " ORDER BY Name ASC";
-  var allResults;
-  _sql(sql, function(jsonResp) {
-	  //console.log(jsonResp.rows);
-	  allResults = jsonResp.rows;
-	  sql = "SELECT * FROM " + dataTableID + " WHERE AltName CONTAINS IGNORING CASE " + queryStr + " ORDER BY Name ASC";
-	  _sql(sql, function(jsonResp) {
-		  allResults = _mergeResults(allResults, jsonResp.rows);
-		  sql = "SELECT * FROM " + dataTableID + " WHERE Gene CONTAINS IGNORING CASE " + queryStr + " ORDER BY Name ASC";		  
-		  _sql(sql, function(jsonResp) {
-			  allResults = _mergeResults(allResults, jsonResp.rows);
-			  if (! allResults ) { // found nothing
-				showQueryResults(null);
-			  } else {
-				_findAliquots(allResults);
-			  }	  			  
-		  });
-	  });	  
-  });
-}
-
-function _getContents(boxname) {
-  var nRow = 10;
-  var nCol = 10;
-  var listOfNames = [];
-  var plasmidData = {};
-
-  var sql = "SELECT NumRow,NumCol FROM " + boxTableID + " WHERE BoxName='" + boxname.toUpperCase() + "'";
-
-  _sql(sql, function(r1) {
-    if (r1.rows) {
-      nRow = r1.rows[0][0];
-      nCol = r1.rows[0][1];
-    }
-
-    sql = "SELECT Row,Col,ContentName,StoredDate FROM " + locationTableID + " WHERE BoxName='" + boxname.toUpperCase() + "'";
-    _sql(sql, function (r2) {
-        if (r2.rows) {
-          var locationData = r2.rows;
-          for (var i in r2.rows) {
-            listOfNames.push("'" + locationData[i][2] + "'");
-          }
-          sql = "SELECT * FROM " + dataTableID + " WHERE Name in (" + listOfNames.join(',') + ")";
-          _sql(sql, function (resp) {
-            for (i in resp.rows) {
-              var row = resp.rows[i];
-              plasmidData[row[0]] = row;
-            }
-            //console.log(plasmidData);
-            //console.log(locationData);
-            showContents({locations: locationData, data: plasmidData, size: [nRow, nCol]});
-          });
-        } else {
-          showContents({location: null, data: null, size: [nRow, nCol]});
-        }
+function handleClientLoad() {
+  gapi.load('client:auth2', function() {
+    gapi.client.init({
+      'apiKey': APIKey,
+      'clientId': clientID,
+      'scope': APIScopes,
+      'discoveryDocs': ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+    }).then(function() {
+      gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
+      gapi.auth2.getAuthInstance().signIn();
+      updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
     });
   });
+}
+
+function updateSignInStatus(isSignedIn) {
+  if (isSignedIn) {
+    readDataSheets();
+  }
+}
+
+function readDataSheets() {
+  Promise.all([
+    gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: dataSheetID,
+      range: 'boxsizes!2:9999',
+    }),
+
+    gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: dataSheetID,
+      range: 'aliquots!2:99999',
+    }),
+
+    gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: dataSheetID,
+      range: 'plasmid!2:99999',
+    }),
+  ]).then(function(resp) {
+    gBoxSizes = resp[0].result.values;
+    gAliquots = resp[1].result.values;
+    gPlasmids = resp[2].result.values;
+
+    var pars = location.search.replace('?', '').split('&').map(function(val){
+      return val.split('=');
+    });
+    if (pars[0][0] == 'query') {
+      var q = pars[0][1].trim();
+      if ( q && q.length >=3 ) {
+        History.replaceState({query: q}, q, '?query=' + q);
+        gQuery = q;
+        $('#box-name-input').val(gQuery);
+        doQuery(q);
+      }
+    }
+  }, function(reason) {
+      alert('Error reading data ' + reason.result.error.message);
+  });
+}
+
+function doQuery(q) {
+  $('#box-content-table').empty().hide();
+  $('#query-result-table').empty().hide();
+
+  if (q) {
+    $('#box-name-input').prop('disabled', true);
+    $('body').css('cursor', 'wait');
+
+    if (q.match(/[\dcC]-\w?\d-\d/)) {
+      $('#box-content').data('name', q);
+      getContents(q);
+    } else {
+      $('#query-result-table').data('query', q);
+      getPlasmids(q);
+    }
+  }
+}
+
+function getContents(boxName) {
+  var nRow = 10;
+  var nCol = 10;
+  boxName = boxName.toUpperCase();
+  var match = gBoxSizes.find(el => el[0] == boxName);
+  if (match !== undefined) {
+    nRows = match[1];
+    nCols = match[2];
+  }
+  var locations = gAliquots.filter(el => el[0] == boxName);
+  showContents({locations: locations, size: [nRow, nCol]});
+}
+
+function stringInclude(str1, str2) {
+  if (str1 === undefined) {
+    return false;
+  }
+  return str1.toUpperCase().includes(str2);
+}
+
+function getPlasmids(plasmidName) {
+  plasmidName = plasmidName.toUpperCase();
+  var matched = gPlasmids.filter(el =>
+    stringInclude(el[0], plasmidName) || stringInclude(el[1], plasmidName || stringInclude(el[3], plasmidName))
+  );
+
+  for (el of matched) {
+    var aliquots = gAliquots.filter(x => x[3] == el[0]);
+    var allNames = [];
+    for (al of aliquots) {
+      var aliquotName = al[0] + ":" + al[1] + String.fromCharCode(64 + Number(al[2]));
+      allNames.push(aliquotName)
+    }
+    el[9] = allNames;
+  }
+
+  //console.log(matched);
+  showQueryResults(matched);
 }
