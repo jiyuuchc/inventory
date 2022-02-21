@@ -1,7 +1,8 @@
-var gData;
-var accessToken;
-var userName;
-var gQuery;
+//var gData;
+//var accessToken;
+// var userName;
+// var gQuery;
+
 var gAliquots;
 var gBoxSizes;
 var gPlasmids;
@@ -18,13 +19,7 @@ $(function () {
   History.Adapter.bind(window,'statechange',function(){
     var State = History.getState();
     History.log(State.data, State.title, State.url);
-    gQuery = State.data.query;
-    if (gQuery) {
-      $('#box-name-input').val(gQuery);
-    } else {
-      $('#box-name-input').val("");
-    }
-    doQuery(gQuery);
+    doQuery();
   });
 
   $('#new-aliquot-box').click(function (e) {
@@ -38,9 +33,9 @@ $(function () {
       var str = $(this).val().trim();
       if (str.length < 3) {
         $(this).select().focus();
-        return false;
+      } else {
+        History.pushState({query:str}, str, "?query=" + str);
       }
-      History.pushState({query:str}, str, "?query=" + str);
       return false;
     }
   });
@@ -104,7 +99,9 @@ $(function () {
       });
     }
     closeForm();
-    updatePlasmid(newdata);
+    updatePlasmid(newdata)
+    .then( () => buildPage() )
+    .catch( reason => onFailure(reason.result.error));
   });
 
   $('#plasmid-form').keyup(function (e) {
@@ -148,7 +145,9 @@ $(function () {
           '<tt><span class="item-id">A</span>Updating...<br>' +
           '<tt><span class="item-id">V</span>Updating...<br>' +
           '<tt><span class="item-id">I</span>Updating...');
-        _addAliquot($('#box-content').data('name'), row, col, newName, $cell);
+        addAliquot($('#box-content').data('name'), row, col, newName)
+        .then( () => buildPage() )
+        .catch( reason => onFailure(reason.result.error));
       }
     }
   });
@@ -161,7 +160,9 @@ $(function () {
     var name = $cell.find('.item-header').text();
     $cell.data('locked', true);
     $cell.css('color', '#B8B8B8');
-    _removeAliquot($('#box-content').data('name'), row, col, name, $cell);
+    removeAliquot($('#box-content').data('name'), row, col)
+    .then( () => buildPage() )
+    .catch( reason => onFailure(reason.result.error));
   });
 
   $('#plasmid-form .form-header').on('click', 'a', function (e) {
@@ -261,8 +262,6 @@ function showContents(data) {
   } catch (err) {
     alert(err.message);
   }
-  $('#box-name-input').prop('disabled', false);
-  $('body').css('cursor', 'default');
 }
 
 function fillQueryCell($cell, data) {
@@ -293,9 +292,6 @@ function showQueryResults(data) {
   // }
   var $table = $('#query-result-table');
 
-  $('#box-name-input').prop('disabled', false);
-  $('body').css('cursor', 'default');
-
   $table.show();
 
   if (!data || data.length === 0) {
@@ -317,28 +313,28 @@ function showQueryResults(data) {
   }
 }
 
-function addAliquot(retData, $cell) {
-  $cell.data('locked', false);
-  if (retData) {
-    var name = retData[0];
-    gData[name] = retData;
+// function addAliquot(retData, $cell) {
+//   $cell.data('locked', false);
+//   if (retData) {
+//     var name = retData[0];
+//     gData[name] = retData;
+//
+//     fillInfo($cell, name);
+//   } else {
+//     $cell.empty();
+//     alert("Adding aliquot failed!");
+//   }
+// }
 
-    fillInfo($cell, name);
-  } else {
-    $cell.empty();
-    alert("Adding aliquot failed!");
-  }
-}
-
-function removeAliquot(retData, $cell) {
-  $cell.data('locked', false);
-  $cell.css('color', 'black');
-  if (retData) {
-    $cell.empty();
-  } else {
-    alert("Remove aliquot failed!");
-  }
-}
+// function removeAliquot(retData, $cell) {
+//   $cell.data('locked', false);
+//   $cell.css('color', 'black');
+//   if (retData) {
+//     $cell.empty();
+//   } else {
+//     alert("Remove aliquot failed!");
+//   }
+// }
 
 function readForm() {
   var $form = $('#plasmid-form');
@@ -413,10 +409,11 @@ function createHint(plasmidName) {
   var num = Number(numStr);
   mainStr.push(word + (num - 1));
   mainStr.push(word + (num - 2));
-  var e = new RegExp('(' + mainStr.join('|') + ')');
-  for (var name in gData) {
+  var re = new RegExp('(' + mainStr.join('|') + ')');
+  for (var line of gPlasmids) {
+    var name = line[0];
     if (name != plasmidName) {
-      if (e.test(name)) {
+      if (re.test(name)) {
         sources.push(name);
         if (sources.length >= 6) {
           return sources.sort();
@@ -501,12 +498,53 @@ function handleClientLoad() {
 
 function updateSignInStatus(isSignedIn) {
   if (isSignedIn) {
-    readDataSheets();
+    var pars = location.search.replace('?', '').split('&').map(function(val){
+      return val.split('=');
+    });
+    var q = pars[0][1].trim();
+    if (pars[0][0] == 'query' && q && q.length >= 3) {
+      History.replaceState({query: q}, q, '?query=' + q);
+      $('#box-name-input').val(q);
+    }
+    buildPage();
   }
 }
 
+function buildPage() {
+  $('#box-name-input').prop('disabled', true);
+  $('body').css('cursor', 'wait');
+  return readDataSheets()
+    .then(() => doQuery() )
+    .catch( reason => onFailure(reason.result.error) )
+    .finally( () => {
+      $('#box-name-input').prop('disabled', false);
+      $('body').css('cursor', 'default');
+    });
+}
+
+function doQuery() {
+  $('#box-content-table').empty().hide();
+  $('#query-result-table').empty().hide();
+
+  var q = History.getState().data.query;
+  if (q) {
+    $('#box-name-input').val(q);
+
+    if (q.match(/[\dcC]-\w?\d-\d/)) {
+      $('#box-content').data('name', q);
+      getContents(q);
+    } else {
+      $('#query-result-table').data('query', q);
+      getPlasmids(q);
+    }
+  } else {
+    $('#box-name-input').val("");
+  }
+  return q;
+}
+
 function readDataSheets() {
-  Promise.all([
+  return Promise.all([
     gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: dataSheetID,
       range: 'boxsizes!2:9999',
@@ -525,40 +563,7 @@ function readDataSheets() {
     gBoxSizes = resp[0].result.values;
     gAliquots = resp[1].result.values;
     gPlasmids = resp[2].result.values;
-
-    var pars = location.search.replace('?', '').split('&').map(function(val){
-      return val.split('=');
-    });
-    if (pars[0][0] == 'query') {
-      var q = pars[0][1].trim();
-      if ( q && q.length >=3 ) {
-        History.replaceState({query: q}, q, '?query=' + q);
-        gQuery = q;
-        $('#box-name-input').val(gQuery);
-        doQuery(q);
-      }
-    }
-  }, function(reason) {
-      alert('Error reading data ' + reason.result.error.message);
   });
-}
-
-function doQuery(q) {
-  $('#box-content-table').empty().hide();
-  $('#query-result-table').empty().hide();
-
-  if (q) {
-    $('#box-name-input').prop('disabled', true);
-    $('body').css('cursor', 'wait');
-
-    if (q.match(/[\dcC]-\w?\d-\d/)) {
-      $('#box-content').data('name', q);
-      getContents(q);
-    } else {
-      $('#query-result-table').data('query', q);
-      getPlasmids(q);
-    }
-  }
 }
 
 function getContents(boxName) {
@@ -601,49 +606,55 @@ function getPlasmids(plasmidName) {
   showQueryResults(matched);
 }
 
-function _removeAliquot(boxName, row, col, contentName, $cell) {
+function removeAliquot(boxName, row, col) {
   row = Number(row);
   col = Number(col);
   boxName = boxName.toUpperCase();
-  idx = gAliquots.findIndex(el => el[0] === boxName && el[1] === row && el[2] === col);
+  var idx = gAliquots.findIndex(el => el[0] === boxName && el[1] === row && el[2] === col);
   console.log(idx)
 
-  if (idx !== -1) {
-    var request = [];
-    request.push({
+  if (idx === -1) {
+    var msg =  'cannot find record of aliquot in internal data. this should not happen';
+    // alert("unexpected: " + msg);
+    // return;
+    var reason = {result:{error:{message: msg}}};
+    return Promise.reject(reason);
+  }
+
+  return gapi.client.sheets.spreadsheets.get({
+      spreadsheetId: dataSheetID,
+      ranges: ["aliquots!A:Z"]
+  })
+  .then( resp => resp.result.sheets[0].properties.sheetId )
+  .then( function(sheetId) {
+    var request = [{
       deleteDimension: {
         range: {
-          sheetId: sheetIds[1],
+          sheetId: sheetId,
           dimension: "ROWS",
           startIndex: idx + 1,
           endIndex: idx + 2,
         }
       }
-    });
-    gapi.client.sheets.spreadsheets.batchUpdate({
+    }];
+    return gapi.client.sheets.spreadsheets.batchUpdate({
       spreadsheetId: dataSheetIds,
       resource: request,
-    }).then( (resp) => {
-      removeAliquot(resp, $cell)
     });
-  } else {
-    alert('Aliquot does not exisit in the database');
-  }
+  });
 }
 
-function _addAliquot(boxName, row, col, contentName, $cell) {
+function addAliquot(boxName, row, col, contentName) {
   row = Number(row);
   col = Number(col);
   boxName = boxName.toUpperCase();
 
-  //read current aliquot table in case sth has changed
-  // gapi.client.sheets.spreadsheets.values.get({
-  //   spreadsheetId: dataSheetID,
-  //   range: 'aliquots!2:99999',
-  // }).then( (resp) => {
-  //   var curAliqots = resp.result.values;
-  //
-  // });
+  var ucName = contentName.toUpperCase();
+  var idx = gPlasmid.findIndex(el => el[0].toUpperCase() === ucName);
+  if (idx !== -1) {
+    contentName = gPlasmid[idx][0];
+  }
+
   var params = {
     spreadsheetId: dataSheetID,
     range: 'aliquots!A:G',
@@ -652,25 +663,39 @@ function _addAliquot(boxName, row, col, contentName, $cell) {
   };
   var data = {
     values: [
-      [boxName, row, col, contentName, '', getCurrentDate()],
+      [boxName, row, col, contentName, "", getCurrentDate(), ""],
     ]
   };
-  var request = gapi.client.sheets.spreadsheets.value.append(params, data);
-  request.then( (resp) => {
-    readDataSheets();
-  }, (reason) => {
-    onFailure(reason.result.error);
+  return gapi.client.sheets.spreadsheets.values.append(params, data)
+  .then( () => {
+    if (idx === -1) {
+      return addNewPlasmid(contenName);
+    }
   });
 }
 
+function addNewPlasmid(plasmidName) {
+  var plasmidData = [plasmidName];
+  var name = gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile().getName();
+  plasmidData[6] = name;
+  var params = {
+    spreadsheetId: dataSheetID,
+    range: 'plasmids!A:G',
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+  };
+  var data = {
+    values: [plasmidData]
+  };
+  return gapi.client.sheets.spreadsheets.values.append(params, data);
+}
+
 function updatePlasmid(plasmidData) {
-  if (plasmidData[6] === undefined || plasmidData[6].length == 0) {
-    plasmidData[6] = userName;
-  }
-  gapi.client.sheets.spreadsheets.values.get({
+  return gapi.client.sheets.spreadsheets.values.get({
     spreadsheetId: dataSheetID,
     range: 'plasmid!2:99999',
-  }).then( (resp) => {
+  })
+  .then( resp => {
     var plasmids = resp.result.values;
     var idx = plasmids.findIndex( el => el[0] === plasmidData[0]);
     if (idx === -1) {
@@ -687,13 +712,7 @@ function updatePlasmid(plasmidData) {
     var data = {
       values: [plasmidData],
     };
-    var request = gapi.client.sheets.spreadsheets.values.update(params, data);
-    request.then((resp) => {
-      readDataSheets();
-    }, (reason) => {
-      onFailure(reason.result.error);
-    });
-  }, (reason) => {
-    onFailure(reason.result.error);
+
+    return gapi.client.sheets.spreadsheets.values.update(params, data);
   });
 }
