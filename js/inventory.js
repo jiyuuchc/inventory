@@ -19,7 +19,7 @@ $(function () {
   History.Adapter.bind(window,'statechange',function(){
     var State = History.getState();
     History.log(State.data, State.title, State.url);
-    doQuery();
+    // doQuery();
   });
 
   $('#new-aliquot-box').click(function (e) {
@@ -35,6 +35,7 @@ $(function () {
         $(this).select().focus();
       } else {
         History.pushState({query:str}, str, "?query=" + str);
+        doQuery();
       }
       return false;
     }
