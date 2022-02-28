@@ -502,10 +502,12 @@ function updateSignInStatus(isSignedIn) {
     var pars = location.search.replace('?', '').split('&').map(function(val){
       return val.split('=');
     });
-    var q = pars[0][1].trim();
-    if (pars[0][0] == 'query' && q && q.length >= 3) {
-      History.replaceState({query: q}, q, '?query=' + q);
-      $('#box-name-input').val(q);
+    if (pars[0][0] === 'query') {
+      var q = pars[0][1];
+      if (q !== undefined && q.length >= 3) {
+        History.replaceState({query: q}, q, '?query=' + q);
+        $('#box-name-input').val(q);
+      }
     }
     buildPage();
   }
